@@ -84,7 +84,7 @@ We are downloading the 64-bit installer:<br>
 
 will take little time to download 255mb setup bin file<br>
 Make the bin file executable/to allow permission:<br>
-2.	# sudo chmod a+x atlassian-confluence-6.3.1-x64.bin<br><br>
+2.	# sudo chmod a+x atlassian-confluence-6.3.1-x64.bin<br>
 
 3.  # sudo ./atlassian-confluence-6.3.1-x64.bin<br>
 
@@ -128,10 +128,9 @@ Your installation of Confluence 6.3.1 is now ready and can be accessed via
 your browser.<br>
 Confluence 6.3.1 can be accessed at http://localhost:3000<br>
 Finishing installation ...<br>
-=================================================================================
 
 ADD/ALLOW PORTS THROUGH FIREWALL<br>
-=========================<br>
+=================================================================================<br>
 $ sudo firewall-cmd --zone=public --add-port=5000/tcp --permanent<br>
 $ sudo firewall-cmd --zone=public --add-port=4000/tcp --permanent<br>
 $ sudo firewall-cmd --zone=public --add-port=3306/tcp --permanent<br>
@@ -154,9 +153,9 @@ iii- move the unpacked jar file in the appropriate Confluence directory<br>
 iv-shutdown Confluence first and then edit the server.xml file.<br>
 # sudo sh /opt/atlassian/confluence/bin/shutdown.sh<br>
 v- edit the server.xml<br>
-# vi /opt/atlassian/confluence/conf/server.xml<br>
+vi /opt/atlassian/confluence/conf/server.xml<br>
 
-vi- paste following after this line<
+vii- paste following after this line
 <Context path="" docBase="../confluence" debug="0" reloadable="true"><br>
 <Context path="/confluence" docBase="../confluence" debug="0" reloadable="false" useHttpOnly="true"><br>
 
@@ -170,9 +169,9 @@ vi- paste following after this line<
           defaultTransactionIsolation="READ_COMMITTED"<br>
           validationQuery="Select 1" /><br>
 
-vii- Now edit the web.xml file located in the WEB-INF directory:<br>
+viii- Now edit the web.xml file located in the WEB-INF directory:<br>
 
-viii- /opt/atlassian/confluence/confluence/WEB-INF/web.xml<br>
+ix- /opt/atlassian/confluence/confluence/WEB-INF/web.xml<br>
 Insert the following components just before </web-app><br>
 
 <resource-ref><br>
@@ -183,7 +182,7 @@ Insert the following components just before </web-app><br>
 </resource-ref><br>
 Save and close the web.xml file.<br>
 
-================================================================================
+================================================================================<br>
 4.INSTALL cURL and Imagick library if you are converting images<br>
 
 # sudo sh /opt/atlassian/confluence/bin/start-confluence.sh<br>
