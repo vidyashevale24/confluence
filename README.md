@@ -27,7 +27,6 @@ Configure the JAVA package using the alternatives command:<br>
 7# alternatives --set java /usr/java/"${JDK_VER##*/}"/jre/bin/java<br>
 8# alternatives --set javaws /usr/java/"${JDK_VER##*/}"/jre/bin/javaws<br>
 9# alternatives --set javac /usr/java/"${JDK_VER##*/}"/bin/javac<br>
-
 Check the version of java that it is properly installed<br>
 10.# java -version<br>
 
@@ -40,19 +39,19 @@ Download and install the repo:
 
 2# sudo rpm -ivh mysql-community-release-el7-5.noarch.rpm<br>
 
-Update the package index:
+Update the package index:<br>
 3 # yum update
 
-Now install and start MySQL:
-	1		# sudo rpm -ivh mysql-community-release-el7-5.noarch.rpm<br><br>
+Now install and start MySQL:<br>
+	1.		# sudo rpm -ivh mysql-community-release-el7-5.noarch.rpm<br><br>
 
-	2		# systemctl start mysqld<br><br>
+	2.		# systemctl start mysqld<br><br>
 
 Enable MySQL to start on boot:<br>
 	1.	# systemctl enable mysqld<br>
 
 With the MySQL installation out of our way, we can now create a database for the Confluence installation.<br>
- But first, run the mysql_secure_installation script to harden your MySQL server:<br><br>
+But first, run the mysql_secure_installation script to harden your MySQL server:<br><br>
 
 	1.	# mysql_secure_installation <br><br>
  
@@ -83,11 +82,11 @@ For example our CentOS 7 OS is 64-bit:<br>
 We are downloading the 64-bit installer:<br>
 1.	# sudo wget https://downloads.atlassian.com/software/confluence/downloads/atlassian-confluence-6.3.1-x64.bin<br>
 
-	will take little time to download 255mb setup bin file<br>
+will take little time to download 255mb setup bin file<br>
 Make the bin file executable/to allow permission:<br>
 2.	# sudo chmod a+x atlassian-confluence-6.3.1-x64.bin<br><br>
 
-3   # sudo ./atlassian-confluence-6.3.1-x64.bin<br>
+3.  # sudo ./atlassian-confluence-6.3.1-x64.bin<br>
 
 You will get the following output:<br>
 
@@ -142,9 +141,7 @@ Next step is to configure a MySQL datasource connection for Confluence if requir
 =================================================================================
 ----------------- OPTIONAL IF DATABASE IS REQUIRED THEN DO BELOW CHANGES--------<br>
 i- install the MySQL JDBC driver<br>
-
-# cd /opt<br>
-# <br>
+# cd/opt <br>
 ii- Extract it<br>
 # sudo tar -zxvf mysql-connector-java-5.1.35.tar.gz<br>
 
@@ -156,10 +153,10 @@ iii- move the unpacked jar file in the appropriate Confluence directory<br>
 
 iv-shutdown Confluence first and then edit the server.xml file.<br>
 # sudo sh /opt/atlassian/confluence/bin/shutdown.sh<br>
-v edit the server.xml<br>
+v- edit the server.xml<br>
 # vi /opt/atlassian/confluence/conf/server.xml<br>
 
-vi paste following after this line<
+vi- paste following after this line<
 <Context path="" docBase="../confluence" debug="0" reloadable="true"><br>
 <Context path="/confluence" docBase="../confluence" debug="0" reloadable="false" useHttpOnly="true"><br>
 
@@ -173,9 +170,9 @@ vi paste following after this line<
           defaultTransactionIsolation="READ_COMMITTED"<br>
           validationQuery="Select 1" /><br>
 
-vii Now edit the web.xml file located in the WEB-INF directory:<br>
+vii- Now edit the web.xml file located in the WEB-INF directory:<br>
 
-# vi /opt/atlassian/confluence/confluence/WEB-INF/web.xml<br>
+viii- /opt/atlassian/confluence/confluence/WEB-INF/web.xml<br>
 Insert the following components just before </web-app><br>
 
 <resource-ref><br>
@@ -184,8 +181,8 @@ Insert the following components just before </web-app><br>
     <res-type>javax.sql.DataSource</res-type><br>
    <res-auth>Container</res-auth><br>
 </resource-ref><br>
-
 Save and close the web.xml file.<br>
+
 ================================================================================
 4.INSTALL cURL and Imagick library if you are converting images<br>
 
