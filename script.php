@@ -2,8 +2,7 @@
 //Increase maximum execution time
 
 ini_set('max_execution_time', 2000);
-$root = "{$_SERVER['DOCUMENT_ROOT']}/Warburn";
-//$root = "{$_SERVER['DOCUMENT_ROOT']}/CMS";
+$root = "{$_SERVER['DOCUMENT_ROOT']}/CMS";
 $pathLen = strlen($root);
 myScanDir($root, 0, strlen($root),  $parentID = '', $workspaceKey = '', $version = '');
 
@@ -17,11 +16,8 @@ function myScanDir($dir, $level, $rootLen, $parentID = '', $workspaceKey = '', $
 	global $workspaceKey; 
 	if($level == 0){
 
-		/*$workspaceKey = 'WE';
-		$parentID = 'WE';*/
-		
-		$workspaceKey = 'VID';
-		$parentID = 'VID';
+		$workspaceKey = 'WE';
+		$parentID = 'WE';
 		
 		$parentID =  create_page($dir, $parentID , $level);
 	}
@@ -238,29 +234,23 @@ function create_page_child($fileName, $parentID, $workspaceKey ,$content,$level 
 	}
 	curl_close ($ch);
 	$result = json_decode($result);
-	echo "title:       ".$title."<br>";
 	if(isset($result->id))
 	{
 		if ( preg_match("~\bForms\b~",$match_key) ){
 				$data['form_id']=$result->id;
-				echo "form".$result->id."<br>";
 		}
 		if ((preg_match("~\bPPM's\b~",$match_key)) || 
 			(preg_match("~\bPPMs\b~",$match_key))){
 				$data['ppm_id']=$result->id;
-			echo "ppm".$result->id."<br>";
 		}
 		if ((preg_match("~\bStandard Work\b~",$match_key) ) || (preg_match("~\bStandard work\b~",$match_key))){
 				$data['std_id']=$result->id;
-				echo "std".$result->id."<br>";
 		}
 		if ( (preg_match("~\bPowerpoint\b~",$match_key) )|| (preg_match("~\bPower Point\b~",$match_key))){
 				$data['pow_id']=$result->id;
-				echo "pow".$result->id."<br>";
-		}
+			}
 		if ( preg_match("~\bStandard Work Templates\b~",$match_key) ){
 				$data['std_tmp_id']=$result->id;
-				echo "temp".$result->id."<br>";
 		}
 
 		$data['result_id']=$result->id;
@@ -533,8 +523,6 @@ function parse_HTML($fileName, $parentID, $version , $IDs ,$workspaceKey){
 				}
 
 				$title =	$parentNew2."+".$parentNew1;
-				echo "title in href:			".$title."<br>";
-					
 				$anothrParentId 	= 	getPageID($title ,$workspaceKey);
 					
 				$content = str_replace($value, '/download/attachments/'.$anothrParentId.'/'.$match_key.'?api=v'.$version, $content);
@@ -604,8 +592,6 @@ function parse_HTML($fileName, $parentID, $version , $IDs ,$workspaceKey){
 					}
 					
 					$title =	$parentNew2."+".$parentNew1;
-					echo "title in para:			".$title."<br>";
-					
 					$anothrParentId 	= 	getPageID($title ,$workspaceKey);
 					$content =  str_replace($value,'Figures with "Run File" <A class="filename" HREF="/download/attachments/'.$anothrParentId.'/'.$match_key.'?api=v'.$version.'"'.' title="'.$match_key.'">'.$match_key.'</A>', $content);
 				}
