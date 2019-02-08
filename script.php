@@ -2,7 +2,7 @@
 
 //Increase maximum execution time
 
-ini_set('max_execution_time', 80000);
+ini_set('max_execution_time', 180000);
 ini_set('post_max_size', '100M');
 ini_set('upload_max_filesize', '50M');
 
@@ -34,6 +34,7 @@ function myScanDir($dir, $level, $rootLen, $parentID = '', $workspaceKey = '', $
 		        }
 		        else
 		        {
+		        	//Get only ppt,doc , xls jpg, pdf files in array
 		            $ext = pathinfo($entry, PATHINFO_EXTENSION);
 		            if(
 		                ($ext == 'ppt') ||  ($ext == 'PPT') || 
@@ -53,45 +54,17 @@ function myScanDir($dir, $level, $rootLen, $parentID = '', $workspaceKey = '', $
 	}
 
 	global $pathLen; 
-	global $formID; 
 	$version = 1; 
-	global $IDs;
 	global $workspaceKey; 
 	if($level == 0){
+		/*Change Space name and ParentID here*/
 		$workspaceKey = 'NEO';
 		$parentID = 'NEO';
 		$parentID =  create_page($dir, $parentID , $level, $allFiles);
 	}
 	if($level >= 1){
-		$parentID= create_page_child($dir, $parentID, $workspaceKey , $content = '' ,$level , $ext = '', $allFiles);
-		if(isset($parentID['form_id'])){
-			$IDs['form_id'] 	= 	$parentID['form_id'];
-		}
-		if(isset($parentID['ppm_id'])){
-			$IDs['ppm_id'] 		= 	$parentID['ppm_id'];
-		}
-		if(isset($parentID['pp_id'])){
-			$IDs['pp_id'] 		= 	$parentID['pp_id'];
-		}
-		if(isset($parentID['std_id'])){
-			$IDs['std_id'] 		= 	$parentID['std_id'];
-		}
-		if(isset($parentID['st_id'])){
-			$IDs['st_id'] 		= 	$parentID['st_id'];
-		}
-		if(isset($parentID['pow_id'])){
-			$IDs['pow_id'] 		= 	$parentID['pow_id'];
-		}
-		if(isset($parentID['po_id'])){
-			$IDs['po_id'] 		= 	$parentID['po_id'];
-		}
-		if(isset($parentID['std_tmp_id'])){
-			$IDs['std_tmp_id'] 	= 	$parentID['std_tmp_id'];
-		}
-		if(isset($parentID['SWMS_id'])){
-			$IDs['SWMS_id'] 	= 	$parentID['SWMS_id'];
-		}
-		$parentID 	= 	$parentID['result_id'];
+		//Call to Create page child API to create folder name
+		$parentID   = create_page_child($dir, $parentID, $workspaceKey , $content = '' ,$level , $ext = '', $allFiles);
 	}
 	if ($handle = opendir($dir)) {
 		closedir($handle);
@@ -114,7 +87,9 @@ function myScanDir($dir, $level, $rootLen, $parentID = '', $workspaceKey = '', $
 					$ext = pathinfo($match_key, PATHINFO_EXTENSION);
 						
 					if(($ext == 'html' || $ext == 'htm' || $ext == 'HTML' || $ext == 'HTM' )){
-						$data = parse_HTML($fileName, $parentID, $version , $IDs ,$workspaceKey );
+						//Call to parse_HTML function to get html body in json format
+						$data = parse_HTML($fileName, $parentID, $version , $workspaceKey );
+						//Call to Create page child API to create HTML page
 						create_page_child($fileName , $parentID, $workspaceKey ,$data ,$level ,$ext, $allFiles);
 		        	}else{
 	        		if(
@@ -129,8 +104,10 @@ function myScanDir($dir, $level, $rootLen, $parentID = '', $workspaceKey = '', $
 	        			}
       					
 	      				//call to update and upload attachment API
-	      				if(!empty($parentID))
-	      				upload_attachment($parentID , $fileName ,'FromFolder'); 
+	      				if(!empty($parentID)){
+	      					if(file_exists($fileName))
+	      					upload_attachment($parentID , $fileName ,'FromFolder'); 
+	      				}
 	      			}
 	      		}
 			} 
@@ -171,7 +148,8 @@ function create_page($fileName, $parentID ,$level, $allFiles)
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
     $result = curl_exec($ch);
-    print_r($result);
+    //echo "<pre>";
+    //print_r($result);
     if (curl_errno($ch)) {
         echo 'Error:' . curl_error($ch);
     }
@@ -184,7 +162,16 @@ function create_page($fileName, $parentID ,$level, $allFiles)
 /****************** Function to create child page **************************/
 function create_page_child($fileName, $parentID, $workspaceKey ,$data,$level ,$ext, $allFiles)
 {	
-	$content = $data['html'];
+	//echo "file:".$fileName."</br>";
+
+	if(!empty($data)){
+		$content    = $data['html'];
+	    $attachment = $data['attachment'];
+	}
+	else{
+		$content 	=   '';
+		$body 		=	'';
+	}
 	$pieces 		= 	explode("/", $fileName );
 	$count 			= 	count($pieces);
 	$match_key 		= 	$pieces[$count-1];
@@ -192,6 +179,7 @@ function create_page_child($fileName, $parentID, $workspaceKey ,$data,$level ,$e
 	$top_parent_key = 	$pieces[$count-3];
 	if($level == 1){
 		if(($ext == 'html' || $ext == 'htm' || $ext == 'HTML' || $ext == 'HTM' )){
+			//Replace _ and -MAIN from html page name
 			$title 	     =   $match_key;
 			$title 	 	 = 	 str_replace('-MAIN','', $title);
 			$title 	 	 = 	 str_replace('.'.$ext,'', $title);
@@ -220,6 +208,7 @@ function create_page_child($fileName, $parentID, $workspaceKey ,$data,$level ,$e
 						($extFile == 'pdf') || 
 						($extFile == 'PDF')
 					){
+						//Create downloadable link for the documents
 						$titleDoc = preg_replace("@\s+@",' ',htmlspecialchars(addslashes($fname))); 
 						$body .= "<ac:link><ri:attachment ri:filename='$titleDoc' /><ac:plain-text-link-body><![CDATA[$titleDoc]]></ac:plain-text-link-body></ac:link><BR />";
 					}
@@ -252,6 +241,7 @@ function create_page_child($fileName, $parentID, $workspaceKey ,$data,$level ,$e
 						($extFile == 'pdf') || 
 						($extFile == 'PDF')
 					){
+						//Replace special characters in doc name
 						$titleDoc = preg_replace("@\s+@",' ',htmlspecialchars(addslashes($fname))); 
 						$body .= "<ac:link><ri:attachment ri:filename='$titleDoc' /><ac:plain-text-link-body><![CDATA[$titleDoc]]></ac:plain-text-link-body></ac:link><BR />";
 					}
@@ -331,47 +321,29 @@ function create_page_child($fileName, $parentID, $workspaceKey ,$data,$level ,$e
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
 	$result = curl_exec($ch);
-	print_r($result);
+	//echo "<pre>";
+	//print_r($result);
 	if (curl_errno($ch)) {
 		echo 'Error:' . curl_error($ch);die;
 	}
 	curl_close ($ch);
 	$result = json_decode($result);
+	
 	if(isset($result->id))
 	{
-		if($match_key == 'Forms')
-			$data['form_id'] 	= 	$result->id;
-		if($match_key == "PPM's")
-			$data['ppm_id'] 	= 	$result->id;
-		if($match_key == "PPMs")
-			$data['pp_id'] 		= 	$result->id;
-		if($match_key == 'Standard work')
-			$data['st_id'] 		= 	$result->id;
-		if($match_key == 'Standard Work')
-			$data['std_id'] 	= 	$result->id;
-		if($match_key == 'Powerpoint')
-			$data['pow_id'] 	= 	$result->id;
-		if($match_key == 'Power Point')
-			$data['po_id'] 		= 	$result->id;
-		if($match_key == 'Standard Work Templates')
-			$data['std_tmp_id'] = 	$result->id;
-		if($match_key == 'SWMS')
-			$data['SWMS_id'] 	= 	$result->id;
-
-		$data['result_id'] 		=   $result->id;
-		/*echo "<pre>";
-		echo "File Name:".$fileName."<br>";;*/
-		if(!empty($data['attachment'])){
-			upload_file($result->id , $fileName ,$data['attachment'] ); 
+		if(!empty($attachment)){
+			//Call to upload file function for attach file in current page
+			upload_file($result->id , $fileName ,$attachment ); 
 		}
-		return $data;
+		return $result->id;
 	}
+
 }
 
 /*********************** Function to upload a file  ************************/
 function upload_attachment($contentID , $fileName , $FromName ){
-	echo "fileName:".$fileName."<br>";
-	echo "FromName:".$FromName."<br>";
+	//echo "fileName:".$fileName."<br>";
+	//echo "FromName:".$FromName."<br>";
 	$request_url = $GLOBALS['host'].'rest/api/content/'.$contentID.'/child/attachment';
 	
 	if (function_exists('curl_file_create')) { 
@@ -397,20 +369,22 @@ function upload_attachment($contentID , $fileName , $FromName ){
 
     $result = curl_exec($ch);
     $info   = curl_getinfo($ch);
-   
+    
+   /* echo "<pre>";
     print_r($result);
-    print_r($info);
+    print_r($info);*/
     
     if (curl_errno($ch)) {
-    	echo 'Error:' . curl_error($ch);die;
+    	echo 'Error :' . curl_error($ch);
 	}
     curl_close ($ch);
 }
 
 /********************** Function to parse HTML file ************************/
 
-function parse_HTML($fileName, $parentID, $version , $IDs ,$workspaceKey){
+function parse_HTML($fileName, $parentID, $version ,$workspaceKey){
 	//Read File content 
+	//echo "FileName HTML:".$fileName."<br>";
 	$file_array = array();
 	$content = 	file_get_contents($fileName);
 
@@ -454,6 +428,7 @@ function parse_HTML($fileName, $parentID, $version , $IDs ,$workspaceKey){
 		$patterns 		= 	array();
 		$replacements 	=	array();
 		foreach ($newImageArr as $key => $value ) {
+			//Store doc,ppt,pdf,jpg data in $file_array for upload attachment 
 			$file_array[] = $value;
 			
 			/*Using Html Image tag -- Method 1
@@ -469,19 +444,18 @@ function parse_HTML($fileName, $parentID, $version , $IDs ,$workspaceKey){
 	        //Using Confluence filename storage format -- Method 3
 	        $patterns[] = '<IMG USEMAP="#map1" SRC="'.$key.'">';
 	        $replacements[] = "ac:image ac:width= '1024'><ri:attachment ri:fileName='$value' </ac:image>";
-	       
 
 	  	}
 		$content      =     preg_replace($patterns, $replacements, $content);
 	    $content      =     str_replace('</ac:image>/>', '/></ac:image>', $content );
 	    $content      =     str_replace('</ac:image>>', '/></ac:image>', $content );
 	}
-	//Convert all documents into downloadable links
-	$href = array();
-	preg_match_all( '@HREF="([^"]+)"@' , $content , $matchHref );
-	$href = array_pop($matchHref);
-	$href = array_unique($href);
-	$href = array_values($href);
+		//Convert all documents into downloadable links
+		$href = array();
+		preg_match_all( '@HREF="([^"]+)"@' , $content , $matchHref );
+		$href = array_pop($matchHref);
+		$href = array_unique($href);
+		$href = array_values($href);
 	
 		foreach ($href as $key => $value) {
 		$value = chop($value,'"');
@@ -498,79 +472,18 @@ function parse_HTML($fileName, $parentID, $version , $IDs ,$workspaceKey){
 		$pieces  		= 	array_values($pieces);
 		$count 			= 	count($pieces);
 	 	$match_key 		= 	$pieces[$count-1];
-	 	$match_key 		= 	ltrim($match_key, '.');
-	 	$match_key 		= 	str_replace('Production', '', $match_key);
-	 	$match_key 		= 	str_replace('Forms', '', $match_key);
+	 	/*
+	 	$match_key    	=   str_replace('NASA', '',$match_key);
+	 	$match_key    	=   str_replace('WIOP', '',$match_key);
+	 	$match_key    	=   str_replace('NASU', '',$match_key);
+	 	$match_key    	=   ltrim($match_key, '.');
+        $match_key    	=   str_replace('Production', '', $match_key);
+        $match_key    	=   str_replace('Forms', '', $match_key);*/
+
 	 	$file_array[] 	= 	implode('/',$pieces);
-	 		//Get corresponding parent ID
-			if($count == 2){
-				$onlyParent = 	$pieces[$count-2];
-					if($onlyParent == 'Forms'){
-						$content = str_replace($value, '/download/attachments/'.$IDs['form_id'].'/'.$match_key.'?api=v'.$version, $content);
-					}
-					if($onlyParent == "PPM's"){
-						$content = str_replace($value, '/download/attachments/'.$IDs['ppm_id'].'/'.$match_key.'?api=v'.$version, $content);
-					}
-					if($onlyParent == "PPMs"){
-						$content = str_replace($value, '/download/attachments/'.$IDs['pp_id'].'/'.$match_key.'?api=v'.$version, $content);
-					}
-					if($onlyParent == 'Standard work'){
-						$content = str_replace($value, '/download/attachments/'.$IDs['st_id'].'/'.$match_key.'?api=v'.$version, $content);
-					}
-					if($onlyParent == 'Standard Work'){
-						$content = str_replace($value, '/download/attachments/'.$IDs['std_id'].'/'.$match_key.'?api=v'.$version, $content);
-					}
-					if($onlyParent == 'Powerpoint'){
-						$content = str_replace($value, '/download/attachments/'.$IDs['pow_id'].'/'.$match_key.'?api=v'.$version, $content);
-					}
-					if($onlyParent == 'Power Point'){
-						$content = str_replace($value, '/download/attachments/'.$IDs['po_id'].'/'.$match_key.'?api=v'.$version, $content);
-					}
-					if($onlyParent == 'Standard Work Templates'){
-						$content = str_replace($value, '/download/attachments/'.$IDs['std_tmp_id'].'/'.$match_key.'?api=v'.$version, $content);
-					}
-					if($onlyParent == 'SWMS'){
-						$content = str_replace($value, '/download/attachments/'.$IDs['SWMS_id'].'/'.$match_key.'?api=v'.$version, $content);
-					}
-
-				}elseif($count > 2){
-				//Link Parent ID's from another folder by calling getPageID API
-				//Create title of corresponsing link
-
-				$parent1 =  $pieces[$count-2];
-				$parent2 =  $pieces[$count-3];
-				$parent3 =  $pieces[$count-4];
-
-				$parent1 = explode(" ", $parent1 );
-				if(count($parent1) > 1){
-					$parentNew1 = implode('+', $parent1);
-				}else{
-					$parentNew1 = $parent1[0];
-				}
-
-				$parent2 = explode(" ", $parent2 );
-				if(count($parent2) > 1){
-					$parentNew2 = implode('+', $parent2);
-				}else{
-					$parentNew2 =$parent2[0];
-				}
-
-				$parent3 = explode(" ", $parent3 );
-				if(count($parent3) > 1){
-					$parentNew3 = implode('+', $parent3);
-				}else{
-					$parentNew3 =$parent3[0];
-				}
-
-				if($parentNew3 != '')
-					$title =	$parentNew3."+".$parentNew2."+".$parentNew1;
-				else
-					$title =	$parentNew2."+".$parentNew1;
-					
-				$anothrParentId 	= 	getPageID($title ,$workspaceKey);
-					
-				$content = str_replace($value, '/download/attachments/'.$anothrParentId.'/'.$match_key.'?api=v'.$version, $content);
-			}
+	    $content        =   str_replace($value, '', $content);
+        $content    	=   str_replace('<A HREF="" TARGET="_parent">'.$match_key.'</A>', '<ac:link><ri:attachment ri:filename="'.$match_key.'" /><ac:plain-text-link-body><![CDATA['.$match_key.']]></ac:plain-text-link-body></ac:link>', $content);
+        //$content    	=   str_replace('<A HREF="" TARGET="_parent">', '<ac:link><ri:attachment ri:filename="'.$match_key.'" /><ac:plain-text-link-body><![CDATA['.$match_key.']]></ac:plain-text-link-body></ac:link>', $content);
 		}
 	}
 
@@ -588,20 +501,20 @@ function parse_HTML($fileName, $parentID, $version , $IDs ,$workspaceKey){
 				foreach ($pieces as $k => $v) {
 					if($v == '..' || $v == "Figures with 'Run File' .." || strpos($v,'Figures with') !== false)
 					unset($pieces[$k]);
-
 				}
 				$pieces  	  = 	array_values($pieces);
 				$count 		  =  	count($pieces);
 				$match_key    = 	$pieces[$count-1];
-			 	$match_key    =     str_replace('NASA', '',$match_key);
+			 	/*$match_key  =     str_replace('NASA', '',$match_key);
 			 	$match_key    =     str_replace('WIOP', '',$match_key);
+			 	$match_key    =     str_replace('NASU', '',$match_key);*/
 				$file_array[] = 	implode('/',$pieces);
 				$content =  str_replace($value,"Figures with 'Run File' <ac:link><ri:attachment ri:filename='".$match_key."' /><ac:plain-text-link-body><![CDATA[".$match_key."]]></ac:plain-text-link-body></ac:link>", $content);
 			}
 		}
     }
     
-    //replace & with &amp; quotes and <BR> with <BR/>
+    //replace & with &amp; quotes and <BR> with <BR/> which are breaking json
 	$content      = 	str_replace('&','&amp;', $content);
 	$content      = 	str_replace('<BR>','<BR/>', $content);
 	$content      = 	str_replace('<COL WIDTH="60%">','', $content);
@@ -622,33 +535,6 @@ function parse_HTML($fileName, $parentID, $version , $IDs ,$workspaceKey){
 	return $data;
 }
 
-/****************** Function to get content of specific ID *****************/
-function getPageID($title ,$workspaceKey){
-	$ch = curl_init();
-
-	curl_setopt($ch, CURLOPT_URL,$GLOBALS['host']."rest/api/content?title=".$title."&spaceKey=".$workspaceKey."&expand=history");
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-	curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
-	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-
-	$headers = array();
-    $headers[] = "Content-Type: application/json";
-    $headers[] = "Authorization: Basic ".base64_encode($GLOBALS['username'].":".$GLOBALS['password']);
-    $headers[] = "Cache-Control: no-cache";
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-	$result = curl_exec($ch);
-	if (curl_errno($ch)) {
-	    echo 'Error:' . curl_error($ch);
-	}
-	curl_close ($ch);
-	$result = json_decode($result);
-	if(isset($result->results[0])){
-		return $result->results[0]->id;
-	}
-}
-
 /****************** Function to get body content of HTML *******************/
 function get_string_between($string, $start, $end){
     $string = ' ' . $string;
@@ -661,92 +547,120 @@ function get_string_between($string, $start, $end){
 
 function upload_file($contentID , $filePath ,$data)
 {
-	echo "<pre>";
-	print_r($data);
+
+	/*echo "<pre>";
+	echo "MyFile:".$filePath."<br>";
+	print_r($data);*/
 	foreach ( $data as $key => $value ) {
         $pieces     =   explode("/", $value );
-        $count      =   count($pieces);
-        if($count == 1) {
-            $piecesFile     =   explode("/", $filePath );
-            $piecesCount    =   count($piecesFile);
-            $fileName       =   str_replace(
-                                                $piecesFile[$piecesCount-1], 
-                                                $pieces[$count-1],
-                                                $filePath
-                                            );
-            //echo "in if 1<BR>";
-            upload_attachment($contentID , $fileName ,'fromHTML');
+        if(in_array('..', $pieces)){
+            $title =   implode('/', $pieces);
+            $title =   str_replace('../../', '', $title);
+            $title =   "{$_SERVER['DOCUMENT_ROOT']}".'/'.$title;
+            //echo "<BR>First IF<BR>:".$title;
+            if(file_exists($title))
+            upload_attachment($contentID , $title ,'fromHTML');
         }
-        elseif( $count == 2 ) {
-            $piecesFile     =   explode("/", $filePath );
-            $piecesCount    =   count($piecesFile);
-            $fileName       =   str_replace(
-                                                $piecesFile[$piecesCount-2].'/'.
-                                                $piecesFile[$piecesCount-1],
-                                                $pieces[$count-2].'/'.
-                                                $pieces[$count-1], 
-                                                $filePath
-                                            );
-            //echo "in if 2<BR>";
-            upload_attachment($contentID , $fileName ,'fromHTML');
-        }
-        elseif( $count == 3 ) {
+        elseif(in_array('Business Rules', $pieces)){
+            $title =   implode('/', $pieces);
+            $title =   "{$_SERVER['DOCUMENT_ROOT']}/CMS".'/'.$title;
+            //echo "<BR>First ELSE IF<BR>:".$title;
+            if(file_exists($title))
+            upload_attachment($contentID , $title ,'fromHTML');
+        }else{
+                $count        =   count($pieces);
+                $match_key    =   $pieces[$count-1];
+                /*$match_key  =   str_replace('NASA', '',$match_key);
+                $match_key    =   str_replace('WIOP', '',$match_key);
+                $match_key    =   str_replace('NASU', '',$match_key);*/
+		        if($count == 1) {
+		            $piecesFile     =   explode("/", $filePath );
+		            $piecesCount    =   count($piecesFile);
+		            $fileName       =   str_replace(
+		                                                $piecesFile[$piecesCount-1], 
+		                                                $match_key,
+		                                                $filePath
+		                                            );
+		            //echo "<BR>IF 1<BR>:".$fileName;
+		            if(file_exists($fileName))
+		            upload_attachment($contentID , $fileName ,'fromHTML');
+		       }
+		        elseif( $count == 2 ) {
+		            $piecesFile     =   explode("/", $filePath );
+		            $piecesCount    =   count($piecesFile);
+		            $fileName       =   str_replace(
+		                                                $piecesFile[$piecesCount-2].'/'.
+		                                                $piecesFile[$piecesCount-1],
+		                                                $pieces[$count-2].'/'.
+		                                                $match_key, 
+		                                                $filePath
+		                                            );
+		            //echo "<BR>IF 2<BR>:".$fileName;
+		            if(file_exists($fileName))
+		            upload_attachment($contentID , $fileName ,'fromHTML');
+		        }
+		        elseif( $count == 3 ) {
 
-            $piecesFile     =   explode("/", $filePath );
-            $piecesCount    =   count($piecesFile);
-            if(  $pieces[$count-3] == 'Standard Work' ){
-                $fileName       =   str_replace(
-                                                
-                                                $piecesFile[$piecesCount-2].'/'.
-                                                $piecesFile[$piecesCount-1],
-                                                $pieces[$count-3].'/'.
-                                                $pieces[$count-2].'/'.$pieces[$count-1],
-                                                $filePath
-                                            );
-                // echo "in if 3<BR>";
-                upload_attachment($contentID , $fileName ,'fromHTML');
-            }else{
-                 $fileName       =   str_replace(
-                                                $piecesFile[$piecesCount-2].'/'.
-                                                $piecesFile[$piecesCount-1],
-                                                $pieces[$count-3].'/'.
-                                                $pieces[$count-2].'/'.
-                                                $pieces[$count-1], 
-                                                $filePath
-                                            );
-                //  echo "in else 3<BR>";
-                upload_attachment($contentID , $fileName ,'fromHTML');
-            }
-        }
-        elseif( $count == 4 ) {
-       		$piecesFile     =   explode("/", $filePath );
-            $piecesCount    =   count($piecesFile);
-            if(  $pieces[$count-4] == 'Standard Work'){
-                    $fileName       =   str_replace(
+		            $piecesFile     =   explode("/", $filePath );
+		            $piecesCount    =   count($piecesFile);
+		            if(  $pieces[$count-3] == 'Standard Work' ){
+		                $fileName       =   str_replace(
+		                                                
+		                                                $piecesFile[$piecesCount-2].'/'.
+		                                                $piecesFile[$piecesCount-1],
+		                                                $pieces[$count-3].'/'.
+		                                                $pieces[$count-2].'/'.
+		                                                $match_key,
+		                                                $filePath
+		                                            );
+		                //echo "<BR>IF 3<BR>:".$fileName;
+		                if(file_exists($fileName))
+		                upload_attachment($contentID , $fileName ,'fromHTML');
+		            }else{
+		                $fileName       =   str_replace(
+		                                                $piecesFile[$piecesCount-3].'/'.
+		                                                $piecesFile[$piecesCount-2].'/'.
+		                                                $piecesFile[$piecesCount-1],
+		                                                $pieces[$count-3].'/'.
+		                                                $pieces[$count-2].'/'.
+		                                                $match_key, 
+		                                                $filePath
+		                                            );
+		                //echo "<BR>Else 3<BR>:".$fileName;
+		                if(file_exists($fileName))
+		            	upload_attachment($contentID , $fileName ,'fromHTML');
+		            }
+		        }
+		        elseif( $count == 4 ) {
+		            $piecesFile     =   explode("/", $filePath );
+		            $piecesCount    =   count($piecesFile);
+		            if(  $pieces[$count-4] == 'Standard Work'){
+		                    $fileName       =   str_replace(
                                                     
                                                     $piecesFile[$piecesCount-2].'/'.
                                                     $piecesFile[$piecesCount-1],
                                                     $pieces[$count-4].'/'.
                                                     $pieces[$count-3].'/'.
-                                                    $pieces[$count-2].'/'.$pieces[$count-1],
+                                                    $pieces[$count-2].'/'.
+                                                    $match_key,
                                                     $filePath
                                                 );
-                    //echo "in if 4<BR>";
+                    //echo "<BR>IF 4<BR>:".$fileName;
+		            if(file_exists($fileName))        
                     upload_attachment($contentID , $fileName ,'fromHTML');
-            }
-            else{
+                    }else{
                     $fileName       =   str_replace(
-                                                $piecesFile[$piecesCount-3].'/'.
                                                 $piecesFile[$piecesCount-2].'/'.
                                                 $piecesFile[$piecesCount-1],
-                                                $pieces[$count-4].'/'.
                                                 $pieces[$count-3].'/'.
                                                 $pieces[$count-2].'/'.
-                                                $pieces[$count-1], 
+                                                $match_key, 
                                                 $filePath
                                             );
-                    //echo "in else 4<BR>";
+                    //echo "<BR>Else 4<BR>:".$fileName;
+                    if(file_exists($fileName))
                     upload_attachment($contentID , $fileName ,'fromHTML');
+                }
             }
         }
     }
